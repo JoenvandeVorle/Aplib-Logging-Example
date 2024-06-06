@@ -4,21 +4,25 @@ namespace Aplib_Logging_Example.GameExample
 {
     public class SimplePlayer : SimpleEntity
     {
-        public SimplePlayer() 
+        public SimplePlayer(int Health = 100, Location CurrentLocation = Location.Home, string Name = "Player") 
+            : base(Health, CurrentLocation, Name)
         {
-            Health = 100;
-            CurrentLocation = Location.Home;
         }
 
-        public SimplePlayer(Location location) 
+        /// <summary>
+        /// Try to attack an enemy
+        /// </summary>
+        /// <returns>True if the attack was successful, false otherwise</returns>
+        public bool TryAttack(SimpleEnemy enemy) 
         {
-            Health = 100;
-            CurrentLocation = location;
-        }
-
-        public void Attack(SimpleEnemy enemy) 
-        {
+            if (enemy.CurrentLocation != CurrentLocation)
+            {
+                Console.WriteLine($"{Name} cannot attack enemy in different location!");
+                return false;
+            }
+            Console.WriteLine($"{Name} attacked {enemy.Name}!");
             enemy.TakeDamage(10);
+            return true;
         }
 
         public void Heal() 

@@ -1,18 +1,17 @@
 using Aplib.Core;
+using Aplib.Core.Belief.BeliefSets;
+using Aplib.Core.Desire.DesireSets;
+using Aplib.Logging;
 using Aplib_Logging_Example.GameExample;
+using Serilog.Core;
 
 namespace Aplib_Logging_Example.AplibInterface
 {
-    public class AplibRunner
+    public class AplibRunner<TBeliefSet> : LoggingAplibRunner<TBeliefSet>
+        where TBeliefSet : IBeliefSet
     {
-        /// <summary>
-        /// The agent that the test runner is testing.
-        /// </summary>
-        private readonly IAgent _agent;
-
-        public AplibRunner(IAgent agent)
+        public AplibRunner(LoggableBdiAgent<TBeliefSet> agent, Logger logger) : base(agent, logger)
         {
-            _agent = agent;
         }
 
         /// <summary>
@@ -25,6 +24,11 @@ namespace Aplib_Logging_Example.AplibInterface
             {
                 _agent.Update();
                 game.Update();
+
+                DesireSet<TBeliefSet> desireSet = _agent.DesireSet;
+                IMetadata desireData = desireSet.Metadata;
+
+                _logger.Information("Desire: {Desire}", desireData.Name);
             }
 
             return _agent.Status == CompletionStatus.Success;

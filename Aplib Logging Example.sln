@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34607.119
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aplib Logging Example", "Aplib Logging Example\Aplib Logging Example.csproj", "{08E187B6-2990-4D1D-B0EB-746E3A0883BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aplib Logging Example", "Aplib Logging Example\Aplib Logging Example.csproj", "{08E187B6-2990-4D1D-B0EB-746E3A0883BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AplibTests", "AplibTests\AplibTests.csproj", "{69444961-0F91-4D54-9489-B246BED0C655}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AplibTests", "AplibTests\AplibTests.csproj", "{69444961-0F91-4D54-9489-B246BED0C655}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aplib.Logging", "Aplib.Logging\Aplib.Logging.csproj", "{91626E24-7709-4AC1-890E-31767E2BC8C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{69444961-0F91-4D54-9489-B246BED0C655}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69444961-0F91-4D54-9489-B246BED0C655}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69444961-0F91-4D54-9489-B246BED0C655}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91626E24-7709-4AC1-890E-31767E2BC8C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91626E24-7709-4AC1-890E-31767E2BC8C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91626E24-7709-4AC1-890E-31767E2BC8C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91626E24-7709-4AC1-890E-31767E2BC8C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

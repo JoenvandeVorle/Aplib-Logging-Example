@@ -1,11 +1,13 @@
 using Aplib.Core;
-using Aplib.Core.Belief;
-using Aplib.Core.Desire;
+using Aplib.Core.Belief.Beliefs;
+using Aplib.Core.Belief.BeliefSets;
+using Aplib.Core.Desire.DesireSets;
 using Aplib.Core.Desire.Goals;
+using Aplib.Core.Desire.GoalStructures;
 using Aplib.Core.Intent.Tactics;
+using Aplib.Logging;
 using Aplib_Logging_Example.AplibInterface;
 using Aplib_Logging_Example.GameExample;
-using Microsoft.VisualBasic;
 using Serilog;
 using Serilog.Core;
 using Xunit.Abstractions;
@@ -32,7 +34,7 @@ namespace AplibTests
 
         private static SimpleGame _simpleGame = new();
         private SimpleBeliefSet _beliefSet;
-        private Logger _log;
+        private Logger _logger;
 
         public SimpleTest(ITestOutputHelper output) 
         {
@@ -45,7 +47,7 @@ namespace AplibTests
                 .CreateLogger();
 
             log.Information("Game set up!");
-            _log = log;
+            _logger = log;
         }
 
         [Fact]
@@ -56,23 +58,16 @@ namespace AplibTests
                 beliefset =>
                 {
                     SimplePlayer player = beliefset.Player;
-                    player.Attack(beliefset.Enemy);
-                    _log.Information("Player attacked enemy!");
-                },
-                beliefset =>
-                {   // Set the guard
-                    Location playerLocation = beliefset.PlayerLocation;
-                    Location enemyLocation = beliefset.EnemyLocation;
-                    return playerLocation == enemyLocation;
+                    player.TryAttack(beliefset.Enemy);
+                    _logger.Information("Player attacked enemy!");
                 }
-
             );
 
             // Action: Move to the enemy
             Action moveToEnemy = new(
                 beliefset =>
                 {
-                    _log.Information("Player moving to enemy!");
+                    _logger.Information("Player moving to enemy!");
                     SimplePlayer player = beliefset.Player;
                     player.MoveTo(beliefset.EnemyLocation);
                 }
@@ -80,27 +75,34 @@ namespace AplibTests
 
             // Tactic: Kill enemy
             // First move to it, then attack it
-            PrimitiveTactic<SimpleBeliefSet> attackEnemyTactic = new(attackEnemy);
-            PrimitiveTactic<SimpleBeliefSet> moveToEnemyTactic = new(moveToEnemy);
+            PrimitiveTactic<SimpleBeliefSet> attackEnemyTactic = new(new Metadata("attacking enemy"), attackEnemy, AtEnemyPositionPredicate);
+            PrimitiveTactic<SimpleBeliefSet> moveToEnemyTactic = new(new Metadata("moving to enemy"), moveToEnemy);
             FirstOfTactic<SimpleBeliefSet> killEnemy = new(new Metadata("attacking or moving to enemy"), attackEnemyTactic, moveToEnemyTactic);
 
             // Goalstructure
-            Goal<SimpleBeliefSet> enemyDeadGoal = new(killEnemy, EnemyAlivePredicateAndGameRunning);
+            Goal<SimpleBeliefSet> enemyDeadGoal = new(killEnemy, EnemyAliveAndGameRunningPredicate);
             PrimitiveGoalStructure<SimpleBeliefSet> enemyDeadGoalStructure = new(enemyDeadGoal);
 
             // Desire set
-            DesireSet<SimpleBeliefSet> desireSet = new(enemyDeadGoalStructure);
+            DesireSet<SimpleBeliefSet> desireSet = new(new Metadata("kill enemy desireset"), enemyDeadGoalStructure);
 
             // Agent
-            BdiAgent<SimpleBeliefSet> agent = new(_beliefSet, desireSet);
+            LoggableBdiAgent<SimpleBeliefSet> agent = new(_beliefSet, desireSet);
 
-            AplibRunner testRunner = new(agent);
+            AplibRunner<SimpleBeliefSet> testRunner = new(agent, _logger);
 
             bool testResult = testRunner.Test(_simpleGame);
 
             Assert.True(testResult);
 
-            bool EnemyAlivePredicateAndGameRunning(SimpleBeliefSet beliefset) => beliefset.EnemyHealth > 0 && !beliefset.GameEnded;
+            bool AtEnemyPositionPredicate(SimpleBeliefSet beliefset)
+            {
+                Location playerLocation = beliefset.PlayerLocation;
+                Location enemyLocation = beliefset.EnemyLocation;
+                return playerLocation == enemyLocation;
+            }
+
+            bool EnemyAliveAndGameRunningPredicate(SimpleBeliefSet beliefset) => beliefset.EnemyHealth > 0 && !beliefset.GameEnded;
         }
     }
 }
