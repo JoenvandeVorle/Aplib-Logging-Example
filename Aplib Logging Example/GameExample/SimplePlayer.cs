@@ -15,9 +15,9 @@ namespace Aplib_Logging_Example.GameExample
         /// <returns>True if the attack was successful, false otherwise</returns>
         public bool TryAttack(SimpleEnemy enemy) 
         {
-            if (enemy.CurrentLocation != CurrentLocation)
+            if (enemy.CurrentLocation != CurrentLocation && enemy.IsAlive)
             {
-                Console.WriteLine($"{Name} cannot attack enemy in different location!");
+                Console.WriteLine($"{Name} cannot attack {enemy.Name}!");
                 return false;
             }
             Console.WriteLine($"{Name} attacked {enemy.Name}!");

@@ -19,4 +19,6 @@ public interface ILoggableAgent<TBeliefset> : ICompletable
     public void Update();
 
     public DesireSet<TBeliefset> DesireSet { get; }
+
+    public TBeliefset BeliefSet { get; }
 }

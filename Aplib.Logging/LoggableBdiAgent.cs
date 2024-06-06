@@ -17,7 +17,7 @@ public class LoggableBdiAgent<TBeliefSet> : ILoggableAgent<TBeliefSet>
     /// <summary>
     /// Gets the beliefset of the agent.
     /// </summary>
-    private readonly TBeliefSet _beliefSet;
+    public TBeliefSet BeliefSet { get; private set; }
 
     /// <summary>
     /// Gets the desire of the agent.
@@ -37,7 +37,7 @@ public class LoggableBdiAgent<TBeliefSet> : ILoggableAgent<TBeliefSet>
     // /// <param name="desireSet"></param>
     public LoggableBdiAgent(TBeliefSet beliefSet, DesireSet<TBeliefSet> desireSet)
     {
-        _beliefSet = beliefSet;
+        BeliefSet = beliefSet;
         DesireSet = desireSet;
     }
 
@@ -49,18 +49,18 @@ public class LoggableBdiAgent<TBeliefSet> : ILoggableAgent<TBeliefSet>
     public void Update()
     {
         // Belief
-        _beliefSet.UpdateBeliefs();
+        BeliefSet.UpdateBeliefs();
 
         // Desire
-        DesireSet.Update(_beliefSet);
+        DesireSet.Update(BeliefSet);
         if (Status != CompletionStatus.Unfinished) return;
-        IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(_beliefSet);
+        IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(BeliefSet);
 
         // Intent
         ITactic<TBeliefSet> tactic = goal.Tactic;
-        IAction<TBeliefSet>? action = tactic.GetAction(_beliefSet);
+        IAction<TBeliefSet>? action = tactic.GetAction(BeliefSet);
 
         // Execute the action
-        action?.Execute(_beliefSet);
+        action?.Execute(BeliefSet);
     }
 }

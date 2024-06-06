@@ -53,21 +53,19 @@ namespace AplibTests
         [Fact]
         public void KillEnemyTest() 
         {
-            // Action: Attack the enemy
             Action attackEnemy = new(
+                new Metadata("Attack enemy", "Attacks the enemy"),
                 beliefset =>
                 {
                     SimplePlayer player = beliefset.Player;
                     player.TryAttack(beliefset.Enemy);
-                    _logger.Information("Player attacked enemy!");
                 }
             );
 
-            // Action: Move to the enemy
             Action moveToEnemy = new(
+                new Metadata("Move to enemy", "Moves to the enemy"),
                 beliefset =>
                 {
-                    _logger.Information("Player moving to enemy!");
                     SimplePlayer player = beliefset.Player;
                     player.MoveTo(beliefset.EnemyLocation);
                 }
@@ -75,13 +73,16 @@ namespace AplibTests
 
             // Tactic: Kill enemy
             // First move to it, then attack it
-            PrimitiveTactic<SimpleBeliefSet> attackEnemyTactic = new(new Metadata("attacking enemy"), attackEnemy, AtEnemyPositionPredicate);
-            PrimitiveTactic<SimpleBeliefSet> moveToEnemyTactic = new(new Metadata("moving to enemy"), moveToEnemy);
-            FirstOfTactic<SimpleBeliefSet> killEnemy = new(new Metadata("attacking or moving to enemy"), attackEnemyTactic, moveToEnemyTactic);
+            PrimitiveTactic<SimpleBeliefSet> attackEnemyTactic = new(new Metadata("Attack enemy tactic"), attackEnemy, AtEnemyPositionPredicate);
+            FirstOfTactic<SimpleBeliefSet> killEnemy = new(
+                new Metadata("Kill enemy tactic", "attack the enemy, or move closer when not in range"), 
+                attackEnemyTactic, 
+                moveToEnemy.Lift()
+            );
 
             // Goalstructure
-            Goal<SimpleBeliefSet> enemyDeadGoal = new(killEnemy, EnemyAliveAndGameRunningPredicate);
-            PrimitiveGoalStructure<SimpleBeliefSet> enemyDeadGoalStructure = new(enemyDeadGoal);
+            Goal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadAndGameEndedPredicate);
+            PrimitiveGoalStructure<SimpleBeliefSet> enemyDeadGoalStructure = enemyDeadGoal.Lift();
 
             // Desire set
             DesireSet<SimpleBeliefSet> desireSet = new(new Metadata("kill enemy desireset"), enemyDeadGoalStructure);
@@ -102,7 +103,12 @@ namespace AplibTests
                 return playerLocation == enemyLocation;
             }
 
-            bool EnemyAliveAndGameRunningPredicate(SimpleBeliefSet beliefset) => beliefset.EnemyHealth > 0 && !beliefset.GameEnded;
+            bool EnemyDeadAndGameEndedPredicate(SimpleBeliefSet beliefset)
+            {
+                int enemyHealth = beliefset.EnemyHealth;
+                bool gameEnded = beliefset.GameEnded;
+                return enemyHealth < 0 && gameEnded;
+            }
         }
     }
 }

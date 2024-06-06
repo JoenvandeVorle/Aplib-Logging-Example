@@ -1,6 +1,9 @@
 using Aplib.Core;
 using Aplib.Core.Belief.BeliefSets;
 using Aplib.Core.Desire.DesireSets;
+using Aplib.Core.Desire.Goals;
+using Aplib.Core.Intent.Actions;
+using Aplib.Core.Intent.Tactics;
 using Aplib.Logging;
 using Aplib_Logging_Example.GameExample;
 using Serilog.Core;
@@ -20,15 +23,21 @@ namespace Aplib_Logging_Example.AplibInterface
         /// <returns>True if the agent succeeded, false otherwise.</returns>
         public bool Test(SimpleGame game)
         {
+            TBeliefSet beliefSet = _agent.BeliefSet;
+            DesireSet<TBeliefSet> desireSet = _agent.DesireSet;
+            _logger.Information($"Test is starting with DesireSet {desireSet.Metadata.Name} and BeliefSet {beliefSet.GetType().Name}");
+
             while (_agent.Status == CompletionStatus.Unfinished)
             {
-                _agent.Update();
+                IGoal<TBeliefSet> goal = desireSet.GetCurrentGoal(beliefSet);
+                ITactic<TBeliefSet> tactic = goal.Tactic;
+                IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
+
+                _logger.Information($"Agent status is {_agent.Status}. Current goal: {goal} \n"
+                    + $"Current Tactic:{tactic} -- Current Action:{action}"); // TODO: add metadata to IGoal, ITactic, and IAction
+
                 game.Update();
-
-                DesireSet<TBeliefSet> desireSet = _agent.DesireSet;
-                IMetadata desireData = desireSet.Metadata;
-
-                _logger.Information("Desire: {Desire}", desireData.Name);
+                _agent.Update();
             }
 
             return _agent.Status == CompletionStatus.Success;

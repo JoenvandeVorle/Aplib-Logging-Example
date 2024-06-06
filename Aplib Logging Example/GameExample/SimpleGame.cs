@@ -32,7 +32,7 @@ namespace Aplib_Logging_Example.GameExample
         /// </summary>
         public void Update() 
         {
-            if (_enemy.Health <= 0)
+            if (!_enemy.IsAlive)
                 WinGame();
         }
 
