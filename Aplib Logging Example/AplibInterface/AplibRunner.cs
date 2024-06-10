@@ -24,8 +24,8 @@ namespace Aplib_Logging_Example.AplibInterface
         public bool Test(SimpleGame game)
         {
             TBeliefSet beliefSet = _agent.BeliefSet;
-            DesireSet<TBeliefSet> desireSet = _agent.DesireSet;
-            _logger.Information($"Test is starting with DesireSet {desireSet.Metadata.Name} and BeliefSet {beliefSet.GetType().Name}");
+            IDesireSet<TBeliefSet> desireSet = _agent.DesireSet;
+            _logger.Information($"Test is starting with DesireSet {desireSet.GetMetadata().Name} and BeliefSet {beliefSet.GetType().Name}");
 
             while (_agent.Status == CompletionStatus.Unfinished)
             {
@@ -33,8 +33,8 @@ namespace Aplib_Logging_Example.AplibInterface
                 ITactic<TBeliefSet> tactic = goal.Tactic;
                 IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
 
-                _logger.Information($"Agent status is {_agent.Status}. Current goal: {goal} \n"
-                    + $"Current Tactic:{tactic} -- Current Action:{action}"); // TODO: add metadata to IGoal, ITactic, and IAction
+                _logger.Information($"Agent status is {_agent.Status}. Current goal: {goal.GetMetadata().Name}"
+                    + $" -- Current Tactic: {tactic.GetMetadata().Name} -- Current Action: {action.GetMetadata().Name}");
 
                 game.Update();
                 _agent.Update();

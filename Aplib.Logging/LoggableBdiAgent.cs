@@ -25,7 +25,7 @@ public class LoggableBdiAgent<TBeliefSet> : ILoggableAgent<TBeliefSet>
     /// <remarks>
     /// The desire contains all goal structures and the current goal.
     /// </remarks>
-    public DesireSet<TBeliefSet> DesireSet { get; private set; }
+    public IDesireSet<TBeliefSet> DesireSet { get; private set; }
 
     /// <inheritdoc />
     public CompletionStatus Status => DesireSet.Status;
@@ -35,7 +35,7 @@ public class LoggableBdiAgent<TBeliefSet> : ILoggableAgent<TBeliefSet>
     // / </summary>
     // / <param name="beliefSet">The beliefset of the agent.</param>
     // /// <param name="desireSet"></param>
-    public LoggableBdiAgent(TBeliefSet beliefSet, DesireSet<TBeliefSet> desireSet)
+    public LoggableBdiAgent(TBeliefSet beliefSet, IDesireSet<TBeliefSet> desireSet)
     {
         BeliefSet = beliefSet;
         DesireSet = desireSet;
