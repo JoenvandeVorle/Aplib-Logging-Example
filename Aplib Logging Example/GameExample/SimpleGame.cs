@@ -6,10 +6,14 @@ namespace Aplib_Logging_Example.GameExample
     {
         public bool GameEnded => !_gameRunning;
 
+        public bool GameWon {get; private set;}
+
         private bool _gameRunning = false;
 
         private SimplePlayer _player;
         private SimpleEnemy _enemy;
+
+        private int _turn = 0;
 
         /// <summary>
         /// Start the game
@@ -17,9 +21,10 @@ namespace Aplib_Logging_Example.GameExample
         public void Setup() 
         {
             _gameRunning = true;
+            GameWon = false;
 
             _player = new SimplePlayer();
-            _enemy = new SimpleEnemy(50, Location.Forest);
+            _enemy = new SimpleEnemy(30, Location.Forest);
         }
 
         public void Restart() 
@@ -32,14 +37,15 @@ namespace Aplib_Logging_Example.GameExample
         /// </summary>
         public void Update() 
         {
-            if (!_enemy.IsAlive)
-                WinGame();
-        }
+            Console.WriteLine($"Turn: {_turn++}");
+            _player.Update();
 
-        private void WinGame() 
-        {
-            Console.WriteLine("You win!");
-            _gameRunning = false;
+            if (_player.CurrentLocation == Location.Home && !_enemy.IsAlive)
+            {
+                Console.WriteLine("You made it home safely and won!");
+                GameWon = true;
+                EndGame();
+            }
         }
 
         public SimplePlayer GetPlayer() 
@@ -50,6 +56,11 @@ namespace Aplib_Logging_Example.GameExample
         public SimpleEnemy GetEnemy() 
         {
             return _enemy;
+        }
+
+        public void EndGame() 
+        {
+            _gameRunning = false;
         }
     }
 }
