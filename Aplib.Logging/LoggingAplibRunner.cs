@@ -1,9 +1,6 @@
-
+using Aplib.Core;
 using Aplib.Core.Belief.BeliefSets;
-using Aplib.Core.Collections;
-using Aplib.Core.Desire.DesireSets;
 using Aplib.Core.Desire.Goals;
-using Aplib.Core.Desire.GoalStructures;
 using Aplib.Core.Intent.Actions;
 using Aplib.Core.Intent.Tactics;
 using Microsoft.Extensions.Logging;
@@ -29,7 +26,9 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
     /// The stack of goal structures that the agent is working with.
     /// Keeps track of how long the agent has been working on each goal structure.
     /// </summary>
-    protected Dictionary<IGoalStructure<TBeliefSet>, int> _goalTree = new();
+    protected Dictionary<IGoal<TBeliefSet>, int> _goalTree = [];
+
+    protected LoggableDesireSet<TBeliefSet> DesireSet => _agent.DesireSet;
 
     protected LoggingAplibRunner(LoggableBdiAgent<TBeliefSet> agent, ILogger logger)
     {
@@ -37,10 +36,40 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
         _logger = logger;
     }
 
+
+    /// <summary>
+    /// Runs the test for the agent. The test continues until the agent's status is no longer Unfinished.
+    /// </summary>
+    /// <returns>True if the agent succeeded, false otherwise.</returns>
+    public bool Test()
+    {
+        TBeliefSet beliefSet = _agent.BeliefSet;
+        _logger.LogInformation("Test is starting with DesireSet -{DesireSetName}- ({DesireSetDescription}) and BeliefSet -{BeliefSetName}-", 
+            DesireSet.GetMetadata().Name, DesireSet.GetMetadata().Description, beliefSet.GetType().Name);
+
+        while (_agent.Status == CompletionStatus.Unfinished)
+        {
+            LogCurrentAction(beliefSet);
+            IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(beliefSet);
+
+            if (_goalTree.TryGetValue(goal, out int goalCount))
+                _goalTree[goal] = goalCount + 1;
+            else
+                _goalTree[goal] = 1;
+
+            DoWhileRunning();
+            _agent.Update();
+        }
+
+        _logger.LogInformation("Test is finished with status {AgentStatus}", _agent.Status);
+        LogGoalTree(beliefSet);
+
+        return _agent.Status == CompletionStatus.Success;
+    }
+
     protected virtual void LogCurrentAction(TBeliefSet beliefSet)
     {
-        IDesireSet<TBeliefSet> desireSet = _agent.DesireSet;
-        IGoal<TBeliefSet> goal = desireSet.GetCurrentGoal(beliefSet);
+        IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(beliefSet);
         ITactic<TBeliefSet> tactic = goal.Tactic;
         IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
 
@@ -53,12 +82,18 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
     /// </summary>
     protected virtual void LogGoalTree(TBeliefSet beliefSet)
     {
-        LoggableDesireSet<TBeliefSet> desireSet = _agent.DesireSet;
-        IGoal<TBeliefSet> goal = desireSet.GetCurrentGoal(beliefSet);
-        ITactic<TBeliefSet> tactic = goal.Tactic;
-        IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
+        _logger.LogInformation("Goal tree:");
+        foreach (var (goal, count) in _goalTree)
+        {
+            _logger.LogInformation("{GoalName} - {Count}", goal.GetMetadata().Name, count);
+        }
+    }
 
-        _logger.LogInformation("Agent status is {AgentStatus}. Current goal: {GoalName} -- Current Tactic: {TacticName} -- Current Action: {ActionName}",
-            _agent.Status, goal.GetMetadata().Name, tactic.GetMetadata().Name, action.GetMetadata().Name);
+    /// <summary>
+    /// The method that is called while the agent is running.
+    /// This method can be overridden to add custom behavior to the test runner.
+    /// </summary>
+    protected virtual void DoWhileRunning()
+    {
     }
 }

@@ -1,16 +1,16 @@
 using Aplib.Core;
 using Aplib.Core.Belief.Beliefs;
 using Aplib.Core.Belief.BeliefSets;
-using Aplib.Core.Desire.DesireSets;
 using Aplib.Core.Desire.Goals;
 using Aplib.Core.Desire.GoalStructures;
 using Aplib.Core.Intent.Tactics;
 using Aplib.Logging;
 using Aplib_Logging_Example.AplibInterface;
 using Aplib_Logging_Example.GameExample;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Core;
-using Microsoft.Extensions.Logging;
+using Serilog.Sinks.SystemConsole.Themes;
 using Xunit.Abstractions;
 
 using Action = Aplib.Core.Intent.Actions.Action<AplibTests.SimpleTest.SimpleBeliefSet>;
@@ -50,6 +50,8 @@ namespace AplibTests
 
             Logger log = new LoggerConfiguration()
                 .WriteTo.TestOutput(output)
+                .WriteTo.Debug()
+                .WriteTo.Console(theme: AnsiConsoleTheme.Code)
                 .CreateLogger();
 
             var loggerFactory = LoggerFactory.Create(builder =>
@@ -66,7 +68,7 @@ namespace AplibTests
         }
 
         [Fact]
-        public void KillEnemyTest() 
+        public void PlayGameTest() 
         {
             Action attackEnemy = new(
                 new Metadata("Attack enemy", "Attacks the enemy"),
@@ -115,17 +117,16 @@ namespace AplibTests
             );
 
             // Desire set
-            LoggableDesireSet<SimpleBeliefSet> desireSet = new(new Metadata("kill enemy desireset"), gameWonGoalStructure);
+            LoggableDesireSet<SimpleBeliefSet> desireSet = new(new Metadata("Play game DesireSet", "kill the enemy and move back home"), gameWonGoalStructure);
 
             // Agent
             LoggableBdiAgent<SimpleBeliefSet> agent = new(_beliefSet, desireSet);
 
-            SimpleGameAplibRunner<SimpleBeliefSet> testRunner = new(agent, _logger);
+            SimpleGameAplibRunner<SimpleBeliefSet> testRunner = new(agent, _logger, _simpleGame);
 
-            bool testResult = testRunner.Test(_simpleGame);
+            bool testResult = testRunner.Test();
 
             Assert.True(testResult);
-            Assert.False(true); // Intentional fail to show the logs in VSCode
 
             bool AtEnemyPositionPredicate(SimpleBeliefSet beliefset)
             {
