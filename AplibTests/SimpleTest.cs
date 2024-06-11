@@ -10,8 +10,11 @@ using Aplib_Logging_Example.AplibInterface;
 using Aplib_Logging_Example.GameExample;
 using Serilog;
 using Serilog.Core;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
+
 using Action = Aplib.Core.Intent.Actions.Action<AplibTests.SimpleTest.SimpleBeliefSet>;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace AplibTests 
 {
@@ -33,21 +36,33 @@ namespace AplibTests
         }
 
         private static SimpleGame _simpleGame = new();
-        private SimpleBeliefSet _beliefSet;
-        private Logger _logger;
+        private readonly SimpleBeliefSet _beliefSet;
+        private readonly ILogger _logger;
 
+        /// <summary>
+        /// Set up a Serilog logger, that acts as a Microsoft.Extensions.Logging.ILogger
+        /// It writes to the test output via the ITestOutputHelper, so the logs are visible in the test output
+        /// </summary>
         public SimpleTest(ITestOutputHelper output) 
         {
             _simpleGame.Setup();
             _beliefSet = new SimpleBeliefSet();
 
             Logger log = new LoggerConfiguration()
-                .MinimumLevel.Debug()
                 .WriteTo.TestOutput(output)
                 .CreateLogger();
 
-            log.Information("Game set up!");
-            _logger = log;
+            var loggerFactory = LoggerFactory.Create(builder =>
+            {
+                builder
+                    .SetMinimumLevel(LogLevel.Debug)
+                    .AddSerilog(log);
+            });
+
+            ILogger microsoftLogger = loggerFactory.CreateLogger<SimpleTest>();
+
+            microsoftLogger.LogInformation("Game set up!");
+            _logger = microsoftLogger;
         }
 
         [Fact]
@@ -71,7 +86,16 @@ namespace AplibTests
                 }
             );
 
-            // Tactic: Kill enemy
+            Action moveBackHome = new(
+                new Metadata("Move back home", "Moves back to the home location"),
+                beliefset =>
+                {
+                    SimplePlayer player = beliefset.Player;
+                    player.MoveTo(player.Home);
+                }
+            );
+
+            // Tactics: Kill enemy
             // First move to it, then attack it
             PrimitiveTactic<SimpleBeliefSet> attackEnemyTactic = new(new Metadata("Attack enemy tactic"), attackEnemy, AtEnemyPositionPredicate);
             FirstOfTactic<SimpleBeliefSet> killEnemy = new(
@@ -80,21 +104,28 @@ namespace AplibTests
                 moveToEnemy.Lift()
             );
 
-            // Goalstructure
-            Goal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadAndGameEndedPredicate);
-            PrimitiveGoalStructure<SimpleBeliefSet> enemyDeadGoalStructure = enemyDeadGoal.Lift();
+            // Goals
+            // The game is won if the enemy is dead and the player is back home
+            Goal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadPredicate);
+            Goal<SimpleBeliefSet> backHomeGoal = new(new Metadata("Back home goal"), moveBackHome.Lift(new Metadata("Move back home tactic")), PlayerAtHomePredicate);
+            SequentialGoalStructure<SimpleBeliefSet> gameWonGoalStructure = new(
+                new Metadata("Game won goal structure"), 
+                enemyDeadGoal.Lift(new Metadata("Enemy dead goal structure")),
+                backHomeGoal.Lift(new Metadata("Back home goal structure"))
+            );
 
             // Desire set
-            DesireSet<SimpleBeliefSet> desireSet = new(new Metadata("kill enemy desireset"), enemyDeadGoalStructure);
+            LoggableDesireSet<SimpleBeliefSet> desireSet = new(new Metadata("kill enemy desireset"), gameWonGoalStructure);
 
             // Agent
             LoggableBdiAgent<SimpleBeliefSet> agent = new(_beliefSet, desireSet);
 
-            AplibRunner<SimpleBeliefSet> testRunner = new(agent, _logger);
+            SimpleGameAplibRunner<SimpleBeliefSet> testRunner = new(agent, _logger);
 
             bool testResult = testRunner.Test(_simpleGame);
 
             Assert.True(testResult);
+            Assert.False(true); // Intentional fail to show the logs in VSCode
 
             bool AtEnemyPositionPredicate(SimpleBeliefSet beliefset)
             {
@@ -103,11 +134,17 @@ namespace AplibTests
                 return playerLocation == enemyLocation;
             }
 
-            bool EnemyDeadAndGameEndedPredicate(SimpleBeliefSet beliefset)
+            bool EnemyDeadPredicate(SimpleBeliefSet beliefset)
             {
                 int enemyHealth = beliefset.EnemyHealth;
-                bool gameEnded = beliefset.GameEnded;
-                return enemyHealth < 0 && gameEnded;
+                return enemyHealth < 0;
+            }
+
+            bool PlayerAtHomePredicate(SimpleBeliefSet beliefset)
+            {
+                Location playerLocation = beliefset.PlayerLocation;
+                SimplePlayer player = beliefset.Player;
+                return playerLocation == player.Home;
             }
         }
     }
