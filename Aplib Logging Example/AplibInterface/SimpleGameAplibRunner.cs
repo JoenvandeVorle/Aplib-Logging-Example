@@ -6,14 +6,14 @@ using Aplib.Core.Intent.Actions;
 using Aplib.Core.Intent.Tactics;
 using Aplib.Logging;
 using Aplib_Logging_Example.GameExample;
-using Serilog.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Aplib_Logging_Example.AplibInterface
 {
-    public class AplibRunner<TBeliefSet> : LoggingAplibRunner<TBeliefSet>
+    public class SimpleGameAplibRunner<TBeliefSet> : LoggingAplibRunner<TBeliefSet>
         where TBeliefSet : IBeliefSet
     {
-        public AplibRunner(LoggableBdiAgent<TBeliefSet> agent, Logger logger) : base(agent, logger)
+        public SimpleGameAplibRunner(LoggableBdiAgent<TBeliefSet> agent, ILogger logger) : base(agent, logger)
         {
         }
 
@@ -25,20 +25,17 @@ namespace Aplib_Logging_Example.AplibInterface
         {
             TBeliefSet beliefSet = _agent.BeliefSet;
             IDesireSet<TBeliefSet> desireSet = _agent.DesireSet;
-            _logger.Information($"Test is starting with DesireSet {desireSet.GetMetadata().Name} and BeliefSet {beliefSet.GetType().Name}");
+            _logger.LogInformation("Test is starting with DesireSet {DesireSetName} and BeliefSet {BeliefSetName}", desireSet.GetMetadata().Name, beliefSet.GetType().Name);
 
             while (_agent.Status == CompletionStatus.Unfinished)
             {
-                IGoal<TBeliefSet> goal = desireSet.GetCurrentGoal(beliefSet);
-                ITactic<TBeliefSet> tactic = goal.Tactic;
-                IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
-
-                _logger.Information($"Agent status is {_agent.Status}. Current goal: {goal.GetMetadata().Name}"
-                    + $" -- Current Tactic: {tactic.GetMetadata().Name} -- Current Action: {action.GetMetadata().Name}");
+                LogCurrentAction(beliefSet);
 
                 game.Update();
                 _agent.Update();
             }
+
+            _logger.LogInformation("Test is finished with status {AgentStatus}", _agent.Status);
 
             return _agent.Status == CompletionStatus.Success;
         }

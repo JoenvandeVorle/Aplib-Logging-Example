@@ -1,4 +1,3 @@
-
 using Aplib.Core;
 using Aplib.Core.Belief.BeliefSets;
 
@@ -18,4 +17,6 @@ public interface ILoggableAgent<TBeliefset> : ICompletable
     public void Update();
 
     public TBeliefset BeliefSet { get; }
+
+    public LoggableDesireSet<TBeliefset> DesireSet { get; }
 }
