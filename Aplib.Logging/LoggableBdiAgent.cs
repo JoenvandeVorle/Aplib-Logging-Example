@@ -1,7 +1,6 @@
 using Aplib.Core.Agents;
 using Aplib.Core.Belief.BeliefSets;
-using Aplib.Logging.AplibChanges;
-
+using Aplib.Core.Desire.DesireSets;
 
 namespace Aplib.Logging;
 
@@ -12,10 +11,10 @@ namespace Aplib.Logging;
 public class LoggableBdiAgent<TBeliefSet> : BdiAgent<TBeliefSet>
     where TBeliefSet : IBeliefSet
 {
-    public LoggableDesireSet<TBeliefSet> DesireSet { get; }
+    public DesireSet<TBeliefSet> DesireSet { get; }
     public TBeliefSet BeliefSet { get; }
 
-    public LoggableBdiAgent(TBeliefSet beliefSet, LoggableDesireSet<TBeliefSet> desireSet)
+    public LoggableBdiAgent(TBeliefSet beliefSet, DesireSet<TBeliefSet> desireSet)
         : base(beliefSet, desireSet)
     {
         BeliefSet = beliefSet;

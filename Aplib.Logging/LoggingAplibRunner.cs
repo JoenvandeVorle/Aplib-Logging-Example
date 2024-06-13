@@ -1,10 +1,10 @@
 using Aplib.Core;
 using Aplib.Core.Belief.BeliefSets;
+using Aplib.Core.Desire.DesireSets;
 using Aplib.Core.Desire.Goals;
 using Aplib.Core.Intent.Actions;
-using Aplib.Core.Intent.Tactics;
-using Aplib.Logging.AplibChanges;
 using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace Aplib.Logging;
 
@@ -23,22 +23,19 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
     /// </summary>
     protected ILogger _logger;
 
-    protected LoggableGoal<TBeliefSet> CurrentGoal;
-
     /// <summary>
     /// The stack of goal structures that the agent is working with.
     /// Keeps track of how long the agent has been working on each goal structure.
     /// </summary>
     protected Dictionary<IGoal<TBeliefSet>, int> _goalTree = [];
 
-    protected LoggableDesireSet<TBeliefSet> DesireSet => _agent.DesireSet;
+    protected DesireSet<TBeliefSet> DesireSet => _agent.DesireSet;
 
     protected LoggingAplibRunner(LoggableBdiAgent<TBeliefSet> agent, ILogger logger)
     {
         _agent = agent;
         _logger = logger;
     }
-
 
     /// <summary>
     /// Runs the test for the agent. The test continues until the agent's status is no longer Unfinished.
@@ -54,16 +51,15 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
 
         while (_agent.Status == CompletionStatus.Unfinished)
         {
-            CurrentGoal = DesireSet.GetCurrentGoal(beliefSet) as LoggableGoal<TBeliefSet>;
-            if (CurrentGoal != null)
+            IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(beliefSet);
+
+            if (goal is ILoggable loggable)
             {
-                LogCurrentAction(beliefSet);
-                // LogGoalTree(beliefSet);
+                LogCurrentGoal(beliefSet, loggable);
             }
             else 
                 _logger.LogError("Current goal is not loggable!");
                 
-            IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(beliefSet);
 
             if (_goalTree.TryGetValue(goal, out int goalCount))
                 _goalTree[goal] = goalCount + 1;
@@ -79,21 +75,44 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
         return _agent.Status == CompletionStatus.Success;
     }
 
-    protected virtual void LogCurrentAction(TBeliefSet beliefSet)
+    protected virtual void LogCurrentGoal(TBeliefSet beliefSet, ILoggable loggable)
     {
-        ITactic<TBeliefSet> tactic = CurrentGoal.Tactic;
-        IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
+        IAction<TBeliefSet>? action = DesireSet.GetCurrentGoal(beliefSet).Tactic.GetAction(beliefSet);
 
-        _logger.LogInformation("Executing cycle with\n{GoalName} \n Current Action: {ActionName}",
-            CurrentGoal.GetLogTree(0), action.GetMetadata().Name);
+        LogNode tree = loggable.GetLogTree(0);
+        _logger.LogInformation("Executing cycle with\nCurrent Action: {ActionName}\nTree:{Tree} ",
+            action.GetMetadata().Name, LogNodeToString(tree));
     }
 
     /// <summary>
-    /// Logs the GoalStack of the DesireSet as a tree.
+    /// Logs the entire goal tree of the agent.
     /// </summary>
     protected virtual void LogGoalTree(TBeliefSet beliefSet)
     {
-        _logger.LogInformation("Full tree:\n{DesireSet}", DesireSet.GetLogTree());
+        if (DesireSet is ILoggable loggable)
+        {
+            _logger.LogInformation("Full tree:\n{DesireSet}", LogNodeToString(loggable.GetLogTree(0)));
+        }
+        else 
+            _logger.LogError("Current goal is not loggable!");
+    }
+
+    protected string LogNodeToString(LogNode node)
+    {
+        int depth = node.Depth;
+        string indent = "---- ";
+
+        StringBuilder stringBuilder = new();
+        stringBuilder.Append(string.Concat(Enumerable.Repeat(indent, depth)));
+        stringBuilder.Append(node.Loggable.Metadata.Name);
+        stringBuilder.Append('\n');
+
+        foreach (LogNode child in node.Children)
+        {
+            stringBuilder.Append(LogNodeToString(child));
+        }
+
+        return stringBuilder.ToString();
     }
 
     /// <summary>

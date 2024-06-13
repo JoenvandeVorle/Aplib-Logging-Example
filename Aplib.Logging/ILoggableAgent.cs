@@ -1,6 +1,6 @@
 using Aplib.Core;
 using Aplib.Core.Belief.BeliefSets;
-using Aplib.Logging.AplibChanges;
+using Aplib.Core.Desire.DesireSets;
 
 namespace Aplib.Logging;
 
@@ -19,5 +19,5 @@ public interface ILoggableAgent<TBeliefset> : ICompletable
 
     public TBeliefset BeliefSet { get; }
 
-    public LoggableDesireSet<TBeliefset> DesireSet { get; }
+    public DesireSet<TBeliefset> DesireSet { get; }
 }

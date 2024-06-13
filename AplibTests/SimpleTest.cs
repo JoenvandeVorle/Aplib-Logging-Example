@@ -1,11 +1,11 @@
 using Aplib.Core;
 using Aplib.Core.Belief.Beliefs;
 using Aplib.Core.Belief.BeliefSets;
+using Aplib.Core.Desire.DesireSets;
 using Aplib.Core.Desire.Goals;
 using Aplib.Core.Desire.GoalStructures;
 using Aplib.Core.Intent.Tactics;
 using Aplib.Logging;
-using Aplib.Logging.AplibChanges;
 using Aplib_Logging_Example.AplibInterface;
 using Aplib_Logging_Example.GameExample;
 using Microsoft.Extensions.Logging;
@@ -97,16 +97,16 @@ namespace AplibTests
 
             // Goals
             // The game is won if the enemy is dead and the player is back home
-            LoggableGoal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadPredicate);
-            LoggableGoal<SimpleBeliefSet> backHomeGoal = new(new Metadata("Back home goal"), moveBackHome.Lift(new Metadata("Move back home tactic")), PlayerAtHomePredicate);
-            LoggableSequentialGoalStructure<SimpleBeliefSet> gameWonGoalStructure = new(
+            Goal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadPredicate);
+            Goal<SimpleBeliefSet> backHomeGoal = new(new Metadata("Back home goal"), moveBackHome.Lift(new Metadata("Move back home tactic")), PlayerAtHomePredicate);
+            SequentialGoalStructure<SimpleBeliefSet> gameWonGoalStructure = new(
                 new Metadata("Game won goal structure"), 
-                new LoggablePrimitiveGoalStructure<SimpleBeliefSet>(new Metadata("Enemy dead goal structure"), enemyDeadGoal),
-                new LoggablePrimitiveGoalStructure<SimpleBeliefSet>(new Metadata("Back home goal structure"), backHomeGoal)
+                enemyDeadGoal.Lift(new Metadata("Enemy dead goal structure")),
+                backHomeGoal.Lift(new Metadata("Back home goal structure"))
             );
 
             // Desire set
-            LoggableDesireSet<SimpleBeliefSet> desireSet = new(new Metadata("Play game DesireSet", "kill the enemy and move back home"), gameWonGoalStructure);
+            DesireSet<SimpleBeliefSet> desireSet = new(new Metadata("Play game DesireSet", "kill the enemy and move back home"), gameWonGoalStructure);
 
             // Agent
             LoggableBdiAgent<SimpleBeliefSet> agent = new(_beliefSet, desireSet);
