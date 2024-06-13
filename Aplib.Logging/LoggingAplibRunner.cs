@@ -3,6 +3,7 @@ using Aplib.Core.Belief.BeliefSets;
 using Aplib.Core.Desire.Goals;
 using Aplib.Core.Intent.Actions;
 using Aplib.Core.Intent.Tactics;
+using Aplib.Logging.AplibChanges;
 using Microsoft.Extensions.Logging;
 
 namespace Aplib.Logging;
@@ -21,6 +22,8 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
     /// The logger used to log the agent's actions.
     /// </summary>
     protected ILogger _logger;
+
+    protected LoggableGoal<TBeliefSet> CurrentGoal;
 
     /// <summary>
     /// The stack of goal structures that the agent is working with.
@@ -44,12 +47,22 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
     public bool Test()
     {
         TBeliefSet beliefSet = _agent.BeliefSet;
-        _logger.LogInformation("Test is starting with DesireSet -{DesireSetName}- ({DesireSetDescription}) and BeliefSet -{BeliefSetName}-", 
+        _logger.LogInformation("Test is starting with DesireSet: {DesireSetName} -{DesireSetDescription}- and BeliefSet: {BeliefSetName}", 
             DesireSet.GetMetadata().Name, DesireSet.GetMetadata().Description, beliefSet.GetType().Name);
+
+        LogGoalTree(beliefSet);
 
         while (_agent.Status == CompletionStatus.Unfinished)
         {
-            LogCurrentAction(beliefSet);
+            CurrentGoal = DesireSet.GetCurrentGoal(beliefSet) as LoggableGoal<TBeliefSet>;
+            if (CurrentGoal != null)
+            {
+                LogCurrentAction(beliefSet);
+                // LogGoalTree(beliefSet);
+            }
+            else 
+                _logger.LogError("Current goal is not loggable!");
+                
             IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(beliefSet);
 
             if (_goalTree.TryGetValue(goal, out int goalCount))
@@ -62,19 +75,17 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
         }
 
         _logger.LogInformation("Test is finished with status {AgentStatus}", _agent.Status);
-        LogGoalTree(beliefSet);
 
         return _agent.Status == CompletionStatus.Success;
     }
 
     protected virtual void LogCurrentAction(TBeliefSet beliefSet)
     {
-        IGoal<TBeliefSet> goal = DesireSet.GetCurrentGoal(beliefSet);
-        ITactic<TBeliefSet> tactic = goal.Tactic;
+        ITactic<TBeliefSet> tactic = CurrentGoal.Tactic;
         IAction<TBeliefSet>? action = tactic.GetAction(beliefSet);
 
-        _logger.LogInformation("Current goal: {GoalName} -- Current Tactic: {TacticName} -- Current Action: {ActionName}",
-            goal.GetMetadata().Name, tactic.GetMetadata().Name, action.GetMetadata().Name);
+        _logger.LogInformation("Executing cycle with\n{GoalName} \n Current Action: {ActionName}",
+            CurrentGoal.GetLogTree(0), action.GetMetadata().Name);
     }
 
     /// <summary>
@@ -82,11 +93,7 @@ public abstract class LoggingAplibRunner<TBeliefSet> where TBeliefSet : IBeliefS
     /// </summary>
     protected virtual void LogGoalTree(TBeliefSet beliefSet)
     {
-        _logger.LogInformation("Goal tree:");
-        foreach (var (goal, count) in _goalTree)
-        {
-            _logger.LogInformation("{GoalName} - {Count}", goal.GetMetadata().Name, count);
-        }
+        _logger.LogInformation("Full tree:\n{DesireSet}", DesireSet.GetLogTree());
     }
 
     /// <summary>

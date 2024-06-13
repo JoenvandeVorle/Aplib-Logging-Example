@@ -1,5 +1,6 @@
 using Aplib.Core;
 using Aplib.Core.Belief.BeliefSets;
+using Aplib.Logging.AplibChanges;
 
 namespace Aplib.Logging;
 

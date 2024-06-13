@@ -5,6 +5,7 @@ using Aplib.Core.Desire.Goals;
 using Aplib.Core.Desire.GoalStructures;
 using Aplib.Core.Intent.Tactics;
 using Aplib.Logging;
+using Aplib.Logging.AplibChanges;
 using Aplib_Logging_Example.AplibInterface;
 using Aplib_Logging_Example.GameExample;
 using Microsoft.Extensions.Logging;
@@ -72,29 +73,17 @@ namespace AplibTests
         {
             Action attackEnemy = new(
                 new Metadata("Attack enemy", "Attacks the enemy"),
-                beliefset =>
-                {
-                    SimplePlayer player = beliefset.Player;
-                    player.TryAttack(beliefset.Enemy);
-                }
+                beliefset => beliefset.Player.Observation.TryAttack(beliefset.Enemy)
             );
 
             Action moveToEnemy = new(
                 new Metadata("Move to enemy", "Moves to the enemy"),
-                beliefset =>
-                {
-                    SimplePlayer player = beliefset.Player;
-                    player.MoveTo(beliefset.EnemyLocation);
-                }
+                beliefset => beliefset.Player.Observation.MoveTo(beliefset.EnemyLocation)
             );
 
             Action moveBackHome = new(
                 new Metadata("Move back home", "Moves back to the home location"),
-                beliefset =>
-                {
-                    SimplePlayer player = beliefset.Player;
-                    player.MoveTo(player.Home);
-                }
+                beliefset => beliefset.Player.Observation.MoveTo(beliefset.Player.Observation.Home)
             );
 
             // Tactics: Kill enemy
@@ -108,12 +97,12 @@ namespace AplibTests
 
             // Goals
             // The game is won if the enemy is dead and the player is back home
-            Goal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadPredicate);
-            Goal<SimpleBeliefSet> backHomeGoal = new(new Metadata("Back home goal"), moveBackHome.Lift(new Metadata("Move back home tactic")), PlayerAtHomePredicate);
-            SequentialGoalStructure<SimpleBeliefSet> gameWonGoalStructure = new(
+            LoggableGoal<SimpleBeliefSet> enemyDeadGoal = new(new Metadata("Enemy dead goal"), killEnemy, EnemyDeadPredicate);
+            LoggableGoal<SimpleBeliefSet> backHomeGoal = new(new Metadata("Back home goal"), moveBackHome.Lift(new Metadata("Move back home tactic")), PlayerAtHomePredicate);
+            LoggableSequentialGoalStructure<SimpleBeliefSet> gameWonGoalStructure = new(
                 new Metadata("Game won goal structure"), 
-                enemyDeadGoal.Lift(new Metadata("Enemy dead goal structure")),
-                backHomeGoal.Lift(new Metadata("Back home goal structure"))
+                new LoggablePrimitiveGoalStructure<SimpleBeliefSet>(new Metadata("Enemy dead goal structure"), enemyDeadGoal),
+                new LoggablePrimitiveGoalStructure<SimpleBeliefSet>(new Metadata("Back home goal structure"), backHomeGoal)
             );
 
             // Desire set
